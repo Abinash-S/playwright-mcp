@@ -21,6 +21,7 @@ import { packageJSON } from './utils/package.js';
 import { Context } from './context.js';
 import { contextFactory } from './browserContextFactory.js';
 import { runLoopTools } from './loopTools/main.js';
+import { runStepTools } from './stepTools/main.js';
 import { ProxyBackend } from './mcp/proxyBackend.js';
 import { BrowserServerBackend } from './browserServerBackend.js';
 import { ExtensionContextFactory } from './extension/extensionContextFactory.js';
@@ -60,6 +61,7 @@ program
     .addOption(new Option('--connect-tool', 'Allow to switch between different browser connection methods.').hideHelp())
     .addOption(new Option('--vscode', 'VS Code tools.').hideHelp())
     .addOption(new Option('--loop-tools', 'Run loop tools').hideHelp())
+    .addOption(new Option('--step-tools', 'Run step-by-step automation tools').hideHelp())
     .addOption(new Option('--vision', 'Legacy option, use --caps=vision instead').hideHelp())
     .action(async options => {
       setupExitWatchdog();
@@ -92,6 +94,17 @@ program
 
       if (options.loopTools) {
         await runLoopTools(config);
+        return;
+      }
+
+      if (options.stepTools) {
+        // Enable session saving for step tools (required)
+        if (!config.saveSession) {
+          config.saveSession = true;
+          // eslint-disable-next-line no-console
+          console.error('Session saving automatically enabled for step tools');
+        }
+        await runStepTools(config);
         return;
       }
 

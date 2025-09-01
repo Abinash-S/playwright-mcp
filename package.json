@@ -16,6 +16,8 @@
   },
   "license": "Apache-2.0",
   "scripts": {
+    "start": "node lib/index.js",
+    "start:step-tools": "node lib/index.js --step-tools",
     "build": "tsc",
     "lint": "npm run update-readme && npm run check-deps && eslint . && tsc --noEmit",
     "lint-fix": "eslint . --fix",

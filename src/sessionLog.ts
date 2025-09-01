@@ -36,6 +36,12 @@ type LogEntry = {
   userAction?: actions.Action;
   code: string;
   tabSnapshot?: TabSnapshot;
+  stepEvent?: {
+    type: 'session_created' | 'step_started' | 'step_completed' | 'step_failed' | 'step_skipped' | 'session_completed';
+    sessionId?: string;
+    stepId?: string;
+    data?: any;
+  };
 };
 
 export class SessionLog {
@@ -45,6 +51,7 @@ export class SessionLog {
   private _pendingEntries: LogEntry[] = [];
   private _sessionFileQueue = Promise.resolve();
   private _flushEntriesTimeout: NodeJS.Timeout | undefined;
+  private _stepSessions = new Map<string, any>();
 
   constructor(sessionFolder: string) {
     this._folder = sessionFolder;
@@ -172,5 +179,150 @@ export class SessionLog {
     }
 
     this._sessionFileQueue = this._sessionFileQueue.then(() => fs.promises.appendFile(this._file, lines.join('\n')));
+  }
+
+  // Step Tools Methods
+  async createStepSession(steps: string | string[], name?: string, metadata?: Record<string, any>): Promise<any> {
+    const { StepParser } = await import('./stepTools/stepParser.js');
+    const sessionId = `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const parsedSteps = StepParser.parseSteps(steps);
+    
+    const stepList: any[] = parsedSteps.steps.map((step: any, index: number) => ({
+      id: `${sessionId}-step-${index + 1}`,
+      description: step.description,
+      status: 'pending',
+    }));
+
+    const session: any = {
+      id: sessionId,
+      name,
+      status: 'created',
+      steps: stepList,
+      currentStepIndex: 0,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      metadata: { ...parsedSteps.metadata, ...metadata },
+    };
+
+    this._stepSessions.set(sessionId, session);
+    
+    // Log session creation
+    this._appendEntry({
+      timestamp: performance.now(),
+      stepEvent: {
+        type: 'session_created',
+        sessionId: session.id,
+        data: {
+          name: session.name,
+          totalSteps: session.steps.length,
+          steps: session.steps.map((s: any) => ({ id: s.id, description: s.description })),
+          metadata: session.metadata,
+        }
+      },
+      code: '',
+    });
+
+    // Save step session to disk
+    const stepsFile = path.join(this._folder, `${sessionId}.steps.json`);
+    fs.promises.writeFile(stepsFile, JSON.stringify(session, null, 2)).catch(logUnhandledError);
+
+    return session;
+  }
+
+  getStepSession(sessionId: string): any | undefined {
+    return this._stepSessions.get(sessionId);
+  }
+
+  markStepSkipped(sessionId: string, stepId: string, reason?: string): boolean {
+    const session = this._stepSessions.get(sessionId);
+    if (!session) return false;
+
+    const step = session.steps.find((s: any) => s.id === stepId);
+    if (!step) return false;
+
+    step.status = 'skipped';
+    step.skippedAt = new Date();
+    step.skipReason = reason;
+    session.updatedAt = new Date();
+
+    // Log step skip
+    this._appendEntry({
+      timestamp: performance.now(),
+      stepEvent: {
+        type: 'step_skipped',
+        sessionId: session.id,
+        stepId: step.id,
+        data: { reason }
+      },
+      code: '',
+    });
+
+    // Check if session is complete
+    const allDone = session.steps.every((s: any) => s.status === 'completed' || s.status === 'skipped');
+    if (allDone) {
+      session.status = 'completed';
+      this._appendEntry({
+        timestamp: performance.now(),
+        stepEvent: {
+          type: 'session_completed',
+          sessionId: session.id,
+          data: { totalSteps: session.steps.length }
+        },
+        code: '',
+      });
+    }
+
+    // Save updated session
+    this._saveStepSession(session);
+    return true;
+  }
+
+  resetStepToPending(sessionId: string, stepId: string): boolean {
+    const session = this._stepSessions.get(sessionId);
+    if (!session) return false;
+
+    const step = session.steps.find((s: any) => s.id === stepId);
+    if (!step) return false;
+
+    step.status = 'pending';
+    step.error = undefined;
+    step.failedAt = undefined;
+    session.status = 'running';
+    session.updatedAt = new Date();
+
+    // Save updated session
+    this._saveStepSession(session);
+    return true;
+  }
+
+  private _saveStepSession(session: any): void {
+    const stepsFile = path.join(this._folder, `${session.id}.steps.json`);
+    fs.promises.writeFile(stepsFile, JSON.stringify(session, null, 2)).catch(logUnhandledError);
+  }
+
+  getAllStepSessions(): any[] {
+    return Array.from(this._stepSessions.values()).sort((a: any, b: any) => b.updatedAt.getTime() - a.updatedAt.getTime());
+  }
+
+  getStepSessionStatus(sessionId: string): { session: any; currentStep?: any; nextStep?: any } {
+    const session = this._stepSessions.get(sessionId);
+    if (!session) {
+      throw new Error(`Session ${sessionId} not found`);
+    }
+
+    const currentStep = session.steps.find((step: any) => step.status === 'pending' || step.status === 'failed');
+    const nextStep = session.steps.find((step: any) => step.status === 'pending');
+
+    return { session, currentStep, nextStep };
+  }
+
+  deleteStepSession(sessionId: string): boolean {
+    const deleted = this._stepSessions.delete(sessionId);
+    if (deleted) {
+      // Also delete the session file
+      const stepsFile = path.join(this._folder, `${sessionId}.steps.json`);
+      fs.promises.unlink(stepsFile).catch(() => {}); // Ignore errors
+    }
+    return deleted;
   }
 }
