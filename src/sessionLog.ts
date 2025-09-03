@@ -58,6 +58,10 @@ export class SessionLog {
     this._file = path.join(this._folder, 'session.md');
   }
 
+  get sessionFolder(): string {
+    return this._folder;
+  }
+
   static async create(config: FullConfig, rootPath: string | undefined): Promise<SessionLog> {
     const sessionFolder = await outputFile(config, rootPath, `session-${Date.now()}`);
     await fs.promises.mkdir(sessionFolder, { recursive: true });

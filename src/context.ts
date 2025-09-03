@@ -15,6 +15,7 @@
  */
 
 import debug from 'debug';
+import path from 'path';
 import * as playwright from 'playwright';
 
 import { logUnhandledError } from './utils/log.js';
@@ -115,6 +116,11 @@ export class Context {
   }
 
   async outputFile(name: string): Promise<string> {
+    // If we have a session log, save files to the session folder
+    if (this.sessionLog) {
+      const fileName = name.replace(/[^a-zA-Z0-9\-_.]/g, '-');
+      return path.join(this.sessionLog.sessionFolder, fileName);
+    }
     return outputFile(this.config, this._clientInfo.rootPath, name);
   }
 

@@ -41,6 +41,10 @@ export class BrowserServerBackend implements ServerBackend {
     this._tools = filteredTools(config);
   }
 
+  get sessionLog(): SessionLog | undefined {
+    return this._sessionLog;
+  }
+
   async initialize(server: mcpServer.Server, clientVersion: mcpServer.ClientVersion, roots: mcpServer.Root[]): Promise<void> {
     let rootPath: string | undefined;
     if (roots.length > 0) {

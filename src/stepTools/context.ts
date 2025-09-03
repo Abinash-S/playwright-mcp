@@ -26,11 +26,13 @@ export class Context {
     this.sessionLog = sessionLog;
   }
 
-  static async create(config: FullConfig): Promise<Context> {
-    // Create session log like the regular browser backend does
-    const sessionLog = config.saveSession ? 
-      await SessionLog.create(config, undefined) : 
-      undefined;
+  static async create(config: FullConfig, existingSessionLog?: SessionLog): Promise<Context> {
+    let sessionLog = existingSessionLog;
+    
+    // Create session log only if not provided and session saving is enabled
+    if (!sessionLog && config.saveSession) {
+      sessionLog = await SessionLog.create(config, undefined);
+    }
     
     if (!sessionLog) {
       throw new Error('Session logging must be enabled for step tools. Use --save-session flag.');

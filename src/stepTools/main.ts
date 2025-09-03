@@ -19,6 +19,7 @@ import { executeNext } from './executeNext.js';
 import { retry } from './retry.js';
 import { skip } from './skip.js';
 import { status } from './status.js';
+import { generateScript } from './generateScript.js';
 import { Context } from './context.js';
 import { toMcpTool } from './tool.js';
 import * as mcpServer from '../mcp/server.js';
@@ -48,7 +49,7 @@ export async function runStepTools(config: FullConfig) {
 export class StepToolsServerBackend implements ServerBackend {
   private _config: FullConfig;
   private _context: Context | undefined;
-  private _stepTools: Tool<any>[] = [startSession, executeNext, retry, skip, status];
+  private _stepTools: Tool<any>[] = [startSession, executeNext, retry, skip, status, generateScript];
   private _browserBackend: BrowserServerBackend;
 
   constructor(config: FullConfig) {
@@ -57,11 +58,12 @@ export class StepToolsServerBackend implements ServerBackend {
   }
 
   async initialize(server: mcpServer.Server, clientVersion: mcpServer.ClientVersion, roots: mcpServer.Root[]) {
-    // Initialize step tools context
-    this._context = await Context.create(this._config);
-    
-    // Initialize browser backend for regular Playwright tools
+    // Initialize browser backend for regular Playwright tools first
     await this._browserBackend.initialize(server, clientVersion, roots);
+    
+    // Initialize step tools context using the browser backend's session log
+    const sessionLog = this._browserBackend.sessionLog;
+    this._context = await Context.create(this._config, sessionLog);
   }
 
   async listTools(): Promise<mcpServer.Tool[]> {

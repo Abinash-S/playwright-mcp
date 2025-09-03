@@ -26,6 +26,25 @@ export class StepParser {
       };
     }
 
+    // Check if the input string is a JSON array
+    if (typeof input === 'string') {
+      const trimmedInput = input.trim();
+      if (trimmedInput.startsWith('[') && trimmedInput.endsWith(']')) {
+        try {
+          const parsedArray = JSON.parse(trimmedInput);
+          if (Array.isArray(parsedArray)) {
+            return {
+              steps: parsedArray.map((description) => ({
+                description: String(description).trim(),
+              })),
+            };
+          }
+        } catch (error) {
+          // If JSON parsing fails, fall through to markdown parsing
+        }
+      }
+    }
+
     // Handle markdown format
     const lines = input.split('\n').map(line => line.trim()).filter(line => line.length > 0);
     const steps: ParsedSteps['steps'] = [];
