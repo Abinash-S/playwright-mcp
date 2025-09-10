@@ -20,6 +20,7 @@ import * as playwright from 'playwright';
 import { logUnhandledError } from './utils/log.js';
 import { Tab } from './tab.js';
 import { outputFile  } from './config.js';
+import { ScriptGenerator } from './scriptGenerator.js';
 
 import type { FullConfig } from './config.js';
 import type { Tool } from './tools/tool.js';
@@ -42,6 +43,7 @@ export class Context {
   readonly config: FullConfig;
   readonly sessionLog: SessionLog | undefined;
   readonly options: ContextOptions;
+  readonly scriptGenerator: ScriptGenerator;
   private _browserContextPromise: Promise<{ browserContext: playwright.BrowserContext, close: () => Promise<void> }> | undefined;
   private _browserContextFactory: BrowserContextFactory;
   private _tabs: Tab[] = [];
@@ -60,6 +62,12 @@ export class Context {
     this.options = options;
     this._browserContextFactory = options.browserContextFactory;
     this._clientInfo = options.clientInfo;
+    
+    // Initialize script generator with output directory
+    const outputDir = this.config.outputDir || './output';
+    this.scriptGenerator = new ScriptGenerator(outputDir);
+    this.scriptGenerator.startRecording();
+    
     testDebug('create context');
     Context._allContexts.add(this);
   }

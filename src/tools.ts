@@ -31,6 +31,7 @@ import tabs from './tools/tabs.js';
 import screenshot from './tools/screenshot.js';
 import wait from './tools/wait.js';
 import verify from './tools/verify.js';
+import scriptEnhanced from './tools/scriptEnhanced.js';
 
 import type { Tool } from './tools/tool.js';
 import type { FullConfig } from './config.js';
@@ -44,15 +45,18 @@ export const allTools: Tool<any>[] = [
   ...form,
   ...install,
   ...keyboard,
-  ...navigate,
-  ...network,
   ...mouse,
+  ...network,
   ...pdf,
   ...screenshot,
   ...snapshot,
   ...tabs,
-  ...wait,
-  ...verify,
+  // Enhanced tools with script generation capabilities
+  ...scriptEnhanced,
+  // Original tools that don't have enhanced versions yet
+  ...wait.filter(tool => !scriptEnhanced.some(enhanced => enhanced.schema.name === tool.schema.name)),
+  ...verify.filter(tool => !scriptEnhanced.some(enhanced => enhanced.schema.name === tool.schema.name)),
+  ...navigate.filter(tool => !scriptEnhanced.some(enhanced => enhanced.schema.name === tool.schema.name)),
 ];
 
 export function filteredTools(config: FullConfig) {
