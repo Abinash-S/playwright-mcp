@@ -96,9 +96,14 @@ export type Config = {
   saveTrace?: boolean;
 
   /**
-   * The directory to save output files.
+   * The directory to save session logs and general output files.
    */
   outputDir?: string;
+
+  /**
+   * The directory to save generated Playwright scripts.
+   */
+  scriptOutputDir?: string;
 
   network?: {
     /**
