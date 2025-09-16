@@ -40,6 +40,7 @@ export type CLIOptions = {
   imageResponses?: 'allow' | 'omit';
   sandbox?: boolean;
   outputDir?: string;
+  scriptOutputDir?: string;
   port?: number;
   proxyBypass?: string;
   proxyServer?: string;
@@ -191,6 +192,7 @@ export function configFromCLIOptions(cliOptions: CLIOptions): Config {
     saveSession: cliOptions.saveSession,
     saveTrace: cliOptions.saveTrace,
     outputDir: cliOptions.outputDir,
+    scriptOutputDir: cliOptions.scriptOutputDir,
     imageResponses: cliOptions.imageResponses,
   };
 
@@ -216,6 +218,7 @@ function configFromEnv(): Config {
     options.imageResponses = 'omit';
   options.sandbox = envToBoolean(process.env.PLAYWRIGHT_MCP_SANDBOX);
   options.outputDir = envToString(process.env.PLAYWRIGHT_MCP_OUTPUT_DIR);
+  options.scriptOutputDir = envToString(process.env.PLAYWRIGHT_MCP_SCRIPT_OUTPUT_DIR);
   options.port = envToNumber(process.env.PLAYWRIGHT_MCP_PORT);
   options.proxyBypass = envToString(process.env.PLAYWRIGHT_MCP_PROXY_BYPASS);
   options.proxyServer = envToString(process.env.PLAYWRIGHT_MCP_PROXY_SERVER);
