@@ -63,7 +63,9 @@ export class SessionLog {
   }
 
   static async create(config: FullConfig, rootPath: string | undefined): Promise<SessionLog> {
-    const sessionFolder = await outputFile(config, rootPath, `session-${Date.now()}`);
+    // Create session in the sessions subdirectory
+    const baseSessionFolder = await outputFile(config, rootPath, `session-${Date.now()}`);
+    const sessionFolder = path.join(path.dirname(baseSessionFolder), 'sessions', path.basename(baseSessionFolder));
     await fs.promises.mkdir(sessionFolder, { recursive: true });
     // eslint-disable-next-line no-console
     console.error(`Session: ${sessionFolder}`);

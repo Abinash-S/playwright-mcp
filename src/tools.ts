@@ -31,11 +31,23 @@ import tabs from './tools/tabs.js';
 import screenshot from './tools/screenshot.js';
 import wait from './tools/wait.js';
 import verify from './tools/verify.js';
+import scriptEnhanced from './tools/scriptEnhanced.js';
 
 import type { Tool } from './tools/tool.js';
 import type { FullConfig } from './config.js';
 
-export const allTools: Tool<any>[] = [
+// Enhanced tools that replace regular tools
+const scriptEnhancedToolNames = new Set([
+  'browser_click',
+  'browser_type', 
+  'browser_navigate',
+  'browser_verify_element_visible',
+  'browser_verify_text_visible',
+  'browser_wait_for'
+]);
+
+// Filter out regular tools that are replaced by enhanced versions
+const regularTools = [
   ...common,
   ...console,
   ...dialogs,
@@ -53,6 +65,11 @@ export const allTools: Tool<any>[] = [
   ...tabs,
   ...wait,
   ...verify,
+].filter(tool => !scriptEnhancedToolNames.has(tool.schema.name));
+
+export const allTools: Tool<any>[] = [
+  ...regularTools,
+  ...scriptEnhanced,
 ];
 
 export function filteredTools(config: FullConfig) {
